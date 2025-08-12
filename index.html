@@ -1,108 +1,123 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天气服装推荐</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-            text-align: center;
-        }
-        h1 {
-            color: #333;
-        }
-        .weather, .recommendation {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 15px auto;
-            max-width: 400px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        button {
-            padding: 10px 20px;
-            background: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>智能穿衣推荐</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    select, button {
+      padding: 5px;
+      font-size: 16px;
+    }
+    .result {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      margin: auto;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 <body>
+  <h1>智能穿衣推荐</h1>
 
-    <h1>天气服装推荐</h1>
-    <div class="weather" id="weather">正在获取定位和天气数据...</div>
-    <div class="recommendation" id="recommendation"></div>
+  <div class="controls">
+    <label>颜色：
+      <select id="colorSelect">
+        <option value="">不限</option>
+        <option value="黑色">黑色</option>
+        <option value="白色">白色</option>
+        <option value="蓝色">蓝色</option>
+        <option value="红色">红色</option>
+      </select>
+    </label>
+    <label>款式：
+      <select id="styleSelect">
+        <option value="">不限</option>
+        <option value="T恤">T恤</option>
+        <option value="衬衫">衬衫</option>
+        <option value="夹克">夹克</option>
+        <option value="连衣裙">连衣裙</option>
+      </select>
+    </label>
+    <button onclick="getClothingRecommendation()">获取推荐</button>
+  </div>
 
-    <script>
-        const apiKey = "3baf91f4f5b0aca004e4746df944c931";
+  <div class="result" id="result">等待获取天气数据中...</div>
 
-        // 自动获取定位
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(success, error);
-        } else {
-            document.getElementById("weather").innerText = "你的浏览器不支持定位功能";
-        }
+  <script>
+    const API_KEY = "3baf91f4f5b0aca004e4746df944c931";
 
-        function success(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
+    // 获取位置并获取天气
+    function getClothingRecommendation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(success, error);
+      } else {
+        document.getElementById('result').innerText = "浏览器不支持定位功能。";
+      }
+    }
 
-            // 请求天气数据
-            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=zh_cn`)
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                    const temp = data.main.temp;
-                    const weatherDesc = data.weather[0].description;
+    function success(position) {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      fetchWeather(lat, lon);
+    }
 
-                    document.getElementById("weather").innerHTML = `
-                        <h2>当前位置天气</h2>
-                        <p>${data.name}</p>
-                        <p>温度：${temp}°C</p>
-                        <p>天气：${weatherDesc}</p>
-                    `;
+    function error() {
+      document.getElementById('result').innerText = "无法获取位置信息。";
+    }
 
-                    // 服装推荐逻辑
-                    let recommendation = "";
-                    if (temp <= 5) {
-                        recommendation = "外面很冷，建议穿羽绒服、厚外套和围巾 🧥🧣";
-                    } else if (temp <= 15) {
-                        recommendation = "天气有点凉，建议穿毛衣、外套 👕🧥";
-                    } else if (temp <= 25) {
-                        recommendation = "温度适中，可以穿长袖或薄外套 👕";
-                    } else {
-                        recommendation = "天气很热，建议穿短袖、短裤和凉鞋 👕🩳";
-                    }
+    function fetchWeather(lat, lon) {
+      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=zh_cn`;
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const temp = data.main.temp;
+          const weather = data.weather[0].description;
+          filterClothes(temp, weather);
+        })
+        .catch(() => {
+          document.getElementById('result').innerText = "天气数据获取失败。";
+        });
+    }
 
-                    // 天气过滤
-                    if (weatherDesc.includes("雨")) {
-                        recommendation += " 记得带伞 ☔";
-                    } else if (weatherDesc.includes("雪")) {
-                        recommendation += " 路面湿滑，小心行走 ❄️";
-                    }
+    function filterClothes(temp, weather) {
+      const color = document.getElementById('colorSelect').value;
+      const style = document.getElementById('styleSelect').value;
 
-                    document.getElementById("recommendation").innerHTML = `
-                        <h2>服装建议</h2>
-                        <p>${recommendation}</p>
-                    `;
-                })
-                .catch(() => {
-                    document.getElementById("weather").innerText = "获取天气信息失败";
-                });
-        }
+      let suggestion = `当前温度：${temp}℃，天气：${weather}。\n推荐：`;
 
-        function error() {
-            document.getElementById("weather").innerText = "无法获取定位，请允许浏览器访问位置信息";
-        }
-    </script>
+      if (temp >= 25) {
+        suggestion += "短袖、短裤";
+      } else if (temp >= 15) {
+        suggestion += "长袖、薄外套";
+      } else {
+        suggestion += "厚外套、长裤";
+      }
 
+      if (color) {
+        suggestion += `，颜色建议：${color}`;
+      }
+      if (style) {
+        suggestion += `，款式：${style}`;
+      }
+
+      document.getElementById('result').innerText = suggestion;
+    }
+  </script>
 </body>
 </html>
